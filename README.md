@@ -1,6 +1,12 @@
 # securego/gosec
 
-Hardened GitHub Action by [Chainguard](https://www.chainguard.dev).
+Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/securego/gosec](https://github.com/securego/gosec).
+
+## Versions
+
+| Version | Tag | Upstream commit |
+|---------|-----|-----------------|
+| v2.24.7 | [`v2.24.7`](https://github.com/chainguard-actions/gosec/tree/v2.24.7) | — |
 
 ## Privacy
 
