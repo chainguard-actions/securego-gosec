@@ -1,5 +1,7 @@
 # securego/gosec
 
+Go security checker
+
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/securego/gosec](https://github.com/securego/gosec).
 
 ## Versions

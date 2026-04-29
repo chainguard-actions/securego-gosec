@@ -1,5 +1,6 @@
 {
   "owner": "securego",
   "name": "gosec",
-  "visibility": ""
+  "visibility": "internal",
+  "description": "Go security checker"
 }
