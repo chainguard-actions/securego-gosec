@@ -2,5 +2,6 @@
   "owner": "securego",
   "name": "gosec",
   "visibility": "internal",
-  "description": "Go security checker"
+  "description": "Go security checker",
+  "block_publish": false
 }

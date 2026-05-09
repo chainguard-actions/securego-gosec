@@ -1,4 +1,6 @@
 {
-  "upstream": "securego/gosec",
-  "version": "v2.24.7"
+  "owner": "securego",
+  "repo": "gosec",
+  "version": "",
+  "url": "https://github.com/securego/gosec"
 }
