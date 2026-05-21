@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
-| v2.24.7 | [`v2.24.7`](https://github.com/chainguard-actions/securego--gosec/tree/v2.24.7) | — |
+| v2.24.7 | [`v2.24.7`](https://github.com/chainguard-actions/securego-gosec/tree/v2.24.7) | — |
 
 ## Privacy
 
