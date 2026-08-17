@@ -1,0 +1,46 @@
+name: Test clean scan (no issues)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a clean Go file with no security issues
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/gosec-clean"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/gosec-clean/main.go" << 'EOF'
+          package main
+
+          import "fmt"
+
+          func add(a, b int) int {
+            return a + b
+          }
+
+          func main() {
+            result := add(1, 2)
+            fmt.Println(result)
+          }
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/gosec-clean/go.mod" << 'EOF'
+          module example.com/gosec-clean
+
+          go 1.21
+          EOF
+      - name: Run gosec scan on clean Go file
+        id: action
+        uses: .
+        with:
+          args: "./tests/fixtures/gosec-clean/..."
+      - name: Assert gosec ran successfully with no issues
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: gosec ran and found no security issues"
+          else
+            echo "FAIL: expected success but got '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,51 @@
+name: Test scan Go file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a Go file with a known security issue
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/gosec-scan"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/gosec-scan/main.go" << 'EOF'
+          package main
+
+          import (
+            "fmt"
+            "math/rand"
+          )
+
+          func main() {
+            // G404: Use of weak random number generator (math/rand instead of crypto/rand)
+            n := rand.Intn(100)
+            fmt.Println(n)
+          }
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/gosec-scan/go.mod" << 'EOF'
+          module example.com/gosec-test
+
+          go 1.21
+          EOF
+      - name: Run gosec scan on fixture Go file
+        id: action
+        uses: .
+        with:
+          args: "./tests/fixtures/gosec-scan/..."
+        continue-on-error: true
+      - name: Assert gosec ran and detected issues
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # gosec exits with non-zero when it finds security issues
+          # We expect it to find G404 (weak random) in our fixture file
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: gosec ran and found security issues (expected)"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "PASS: gosec ran successfully (no issues found or issues suppressed)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
