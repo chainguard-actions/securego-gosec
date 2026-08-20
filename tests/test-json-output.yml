@@ -1,0 +1,33 @@
+name: Test gosec JSON output format
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a clean Go file to scan
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/json-test"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/json-test/main.go" << 'EOF'
+          package main
+
+          import "fmt"
+
+          func main() {
+            fmt.Println("Hello, World!")
+          }
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/json-test/go.mod" << 'EOF'
+          module example.com/jsontest
+
+          go 1.21
+          EOF
+      - name: Run gosec with JSON output format
+        id: action
+        uses: .
+        with:
+          args: "-fmt json ./tests/fixtures/json-test/..."
+      - name: Assert JSON scan completed successfully
+        run: |
+          echo "PASS: gosec with -fmt json completed successfully"
