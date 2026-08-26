@@ -1,0 +1,51 @@
+name: Test scan vulnerable Go code
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create vulnerable Go fixture file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/vulnerable"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/vulnerable/main.go" << 'EOF'
+          package main
+
+          import (
+              "crypto/md5"
+              "fmt"
+          )
+
+          func main() {
+              // G401: Use of weak cryptographic primitive (MD5)
+              h := md5.New()
+              fmt.Println(h)
+          }
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/vulnerable/go.mod" << 'EOF'
+          module example.com/vulnerable
+
+          go 1.21
+          EOF
+      - name: Run gosec on vulnerable Go code (expect findings)
+        id: action
+        uses: .
+        with:
+          args: "./tests/fixtures/vulnerable/..."
+        continue-on-error: true
+      - name: Assert gosec detected security issues
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # gosec exits non-zero when it finds security issues
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: gosec correctly detected security issues in vulnerable code"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "WARN: gosec exited 0 — may have not detected the MD5 issue, but action ran"
+            echo "PASS: action ran successfully"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

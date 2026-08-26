@@ -1,0 +1,146 @@
+name: CI
+on: # zizmor: ignore[dangerous-triggers]
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  pull_request_target:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name != 'pull_request_target'
+    strategy:
+      matrix:
+        version:
+          - go-version: "1.25.14"
+            golangci: "latest"
+          - go-version: "1.26.7"
+            golangci: "latest"
+          - go-version: "1.27.0"
+            golangci: "latest"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Setup go ${{ matrix.version.go-version }}
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: ${{ matrix.version.go-version }}
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+        with:
+          version: ${{ matrix.version.golangci }}
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@57f161386e11e13e4c8a37255bc1a6502993d079 # master
+        with:
+          args: '-exclude-dir=testdata ./...'
+      - name: Run Tests
+        run: make test
+      - name: Perf Diff
+        run: make perf-diff
+  taint-perf-guard:
+    if: github.event_name != 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+      BENCH_COUNT: "5"
+    steps:
+      - name: Setup go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.0"
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Check taint benchmark regression
+        run: bash tools/check_taint_benchmark.sh
+  barry-ai-security-review:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    environment: security-review
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Run Barry AI Security Review
+        id: barry
+        uses: ccojocar/barry@66654985f3a1b5fe417656467fa0d0b1e9f6e1db # main
+        continue-on-error: true
+        with:
+          google-api-key: ${{ secrets.GOOGLE_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          false-positive-filtering-instructions: .github/barry/custom-gosec-false-positive-filter
+          custom-security-scan-instructions: .github/barry/custom-gosec-security-scan-instructions
+          validator-model: gemini-3-flash-preview
+          autofix-model: gemini-3-flash-preview
+          output-format: sarif
+      - name: Upload SARIF to GitHub Security Center
+        uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
+        if: steps.barry.outcome == 'success'
+        with:
+          sarif_file: ${{ github.workspace }}/barry-results.sarif
+  coverage:
+    if: github.event_name != 'pull_request_target'
+    needs: [test, taint-perf-guard]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Setup go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.0"
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Create Test Coverage
+        run: make test-coverage
+      - name: Upload Test Coverage
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
