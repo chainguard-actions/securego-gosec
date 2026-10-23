@@ -11,6 +11,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v2.24.7 | [`v2.24.7`](https://github.com/chainguard-actions/securego-gosec/tree/v2.24.7) | [`bb17e42`](https://github.com/securego/gosec/commit/bb17e422fc34bf4c0a2e5cab9d07dc45a68c040c) |
 | v2.28.0 | [`v2.28.0`](https://github.com/chainguard-actions/securego-gosec/tree/v2.28.0) | [`9e75c05`](https://github.com/securego/gosec/commit/9e75c0576c9878035d4221392108d458abe10fc3) |
 | v2.29.0 | [`v2.29.0`](https://github.com/chainguard-actions/securego-gosec/tree/v2.29.0) | [`deb5446`](https://github.com/securego/gosec/commit/deb54465fea23d19a77f037e11e6589021f8501d) |
+| v2.30.0 | [`v2.30.0`](https://github.com/chainguard-actions/securego-gosec/tree/v2.30.0) | [`5eb1d10`](https://github.com/securego/gosec/commit/5eb1d104ef85ff2c905c877eb600e8c1dee33a22) |
 
 ## Privacy
 
