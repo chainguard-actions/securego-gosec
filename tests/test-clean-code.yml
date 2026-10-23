@@ -1,0 +1,29 @@
+name: Test clean code passes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          args: "-fmt json -out gosec-clean.json ./tests/fixtures/clean/..."
+      - name: Assert report has no issues
+        run: |
+          f="$GITHUB_WORKSPACE/gosec-clean.json"
+          if [ ! -f "$f" ]; then
+            echo "FAIL: report not found"
+            exit 1
+          fi
+          cat "$f"
+          if ! grep -qE '"found": *0([^0-9]|$)' "$f"; then
+            echo "FAIL: expected zero issues"
+            exit 1
+          fi
+          if grep -qE '"rule_id"' "$f"; then
+            echo "FAIL: unexpected issues reported"
+            exit 1
+          fi
+          echo "PASS"

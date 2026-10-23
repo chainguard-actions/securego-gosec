@@ -1,0 +1,19 @@
+name: "Gosec Security Checker"
+description: "Runs the gosec security checker"
+author: "@ccojocar"
+
+inputs:
+  args:
+    description: "Arguments for gosec"
+    required: true
+    default: "-h"
+
+runs:
+  using: "docker"
+  image: "docker://ghcr.io/securego/gosec@sha256:a6cd2f302b5f692e0b77b25751b299ddfbc0763a9711fa36e5a6bccd5292b0e8" # 2.29.0
+  args:
+    - ${{ inputs.args }}
+
+branding:
+  icon: "shield"
+  color: "blue"

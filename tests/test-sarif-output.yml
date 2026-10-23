@@ -1,0 +1,41 @@
+name: Test SARIF output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Place vulnerable source inside the workspace root module
+        run: |
+          # gosec (image 2.29) resolves packages from the CWD's module, so a nested
+          # module (with its own go.mod) is skipped and 0 files are scanned. Copy
+          # only the Go source into a directory governed by the root go.mod.
+          rm -f "$GITHUB_WORKSPACE/go.work"
+          rm -rf "$GITHUB_WORKSPACE/gosecscansarif"
+          mkdir -p "$GITHUB_WORKSPACE/gosecscansarif"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/vulnerable/main.go" "$GITHUB_WORKSPACE/gosecscansarif/main.go"
+          ls -la "$GITHUB_WORKSPACE/gosecscansarif"
+      - id: action
+        uses: .
+        env:
+          GOWORK: "off"
+        with:
+          args: "-no-fail -fmt sarif -out gosec.sarif ./gosecscansarif/..."
+      - name: Assert SARIF report produced
+        run: |
+          f="$GITHUB_WORKSPACE/gosec.sarif"
+          if [ ! -f "$f" ]; then
+            echo "FAIL: sarif report not found"
+            exit 1
+          fi
+          cat "$f"
+          if ! grep -q '"version": *"2.1.0"' "$f" && ! grep -q '"\$schema"' "$f"; then
+            echo "FAIL: not a SARIF document"
+            exit 1
+          fi
+          if ! grep -qE 'G401|G501' "$f"; then
+            echo "FAIL: expected weak crypto rule in SARIF"
+            exit 1
+          fi
+          echo "PASS"

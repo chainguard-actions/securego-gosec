@@ -1,0 +1,37 @@
+name: Test vulnerable code reported with -no-fail
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Place vulnerable source inside the workspace root module
+        run: |
+          # gosec (image 2.29) resolves packages from the CWD's module, so a nested
+          # module (with its own go.mod) is skipped and 0 files are scanned. Copy
+          # only the Go source into a directory governed by the root go.mod.
+          rm -f "$GITHUB_WORKSPACE/go.work"
+          rm -rf "$GITHUB_WORKSPACE/gosecscanvuln"
+          mkdir -p "$GITHUB_WORKSPACE/gosecscanvuln"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/vulnerable/main.go" "$GITHUB_WORKSPACE/gosecscanvuln/main.go"
+          ls -la "$GITHUB_WORKSPACE/gosecscanvuln"
+      - id: action
+        uses: .
+        env:
+          GOWORK: "off"
+        with:
+          args: "-no-fail -fmt json -out gosec-vuln.json ./gosecscanvuln/..."
+      - name: Assert weak crypto issue reported
+        run: |
+          f="$GITHUB_WORKSPACE/gosec-vuln.json"
+          if [ ! -f "$f" ]; then
+            echo "FAIL: report not found"
+            exit 1
+          fi
+          cat "$f"
+          if ! grep -qE '"G401"|"G501"' "$f"; then
+            echo "FAIL: expected G401/G501 weak crypto finding"
+            exit 1
+          fi
+          echo "PASS"
